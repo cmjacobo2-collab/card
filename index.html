@@ -71,6 +71,10 @@
   .heroframe .me{position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:74%;height:auto;display:block;}
   .brandlogo{display:flex;justify-content:center;margin:10px 0 14px;}
   .brandlogo img{width:80%;max-width:330px;height:auto;display:block;}
+  .ios-hint{display:none;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:-2px 0 10px;color:var(--cream);font-size:13px;line-height:1.55;}
+  .ios-hint b{color:var(--gold);}
+  .ios-hint span{display:block;margin-top:5px;}
+  .install-ok{display:none;text-align:center;color:var(--gold);font-size:13px;margin:-2px 0 10px;font-weight:600;}
 </style>
 </head>
 <body>
@@ -87,7 +91,13 @@
   <!-- HERO BUTTONS -->
   <button class="btn btn-gold" onclick="saveContact()">Save My Contact</button>
   <button class="btn btn-gold" id="installBtn" onclick="installApp()">Add My Site to Your Phone</button>
-  <p class="ios-hint" id="iosHint">On iPhone: tap Share, then “Add to Home Screen.”</p>
+  <div class="ios-hint" id="iosHint">
+    <b>To add this to your iPhone:</b>
+    <span>1. Tap the <b>Share</b> icon at the bottom of Safari</span>
+    <span>2. Scroll down and tap <b>“Add to Home Screen”</b></span>
+    <span>3. Tap <b>Add</b> — done! ✓</span>
+  </div>
+  <p class="install-ok" id="installOk">✓ Added! Look for the Across the Table icon on your home screen.</p>
   <a class="btn btn-outline" href="#connect">📇 Share Your Info With Me</a>
   <!-- TEMP: points to email until your Calendly is ready. Replace the href below with your Calendly link. -->
   <a class="btn btn-outline" href="mailto:info@acrossthetable.biz?subject=Discovery%20Call%20Request" target="_blank" rel="noopener">Schedule a Discovery Call</a>
@@ -193,16 +203,36 @@
     setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
   }
 
-  /* ----- PWA install ----- */
+  /* ----- PWA install (as automatic as phones allow) ----- */
   var deferredPrompt = null;
-  window.addEventListener("beforeinstallprompt", function(e){
-    e.preventDefault(); deferredPrompt = e;
-    document.getElementById("iosHint").style.display = "none";
-  });
+  var isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+              (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  var isStandalone = window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
+  var installBtn = document.getElementById("installBtn");
+  if (isStandalone && installBtn){ installBtn.textContent = "✓ Added to your phone"; installBtn.disabled = true; installBtn.style.opacity = .7; }
+
+  window.addEventListener("beforeinstallprompt", function(e){ e.preventDefault(); deferredPrompt = e; });
+
   function installApp(){
-    if (deferredPrompt){ deferredPrompt.prompt(); deferredPrompt = null; }
-    else { document.getElementById("iosHint").style.display = "block"; }
+    var hint = document.getElementById("iosHint");
+    if (deferredPrompt){                      /* Android / desktop Chrome: one-tap native installer */
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(function(){ deferredPrompt = null; });
+      return;
+    }
+    if (isIOS){                                /* iPhone: Apple requires manual steps */
+      hint.style.display = "block"; hint.scrollIntoView({behavior:"smooth", block:"center"}); return;
+    }
+    hint.innerHTML = "<b>To add this app:</b><span>Open your browser menu, then tap <b>“Install app”</b> or <b>“Add to Home screen.”</b></span>";
+    hint.style.display = "block"; hint.scrollIntoView({behavior:"smooth", block:"center"});
   }
+
+  window.addEventListener("appinstalled", function(){
+    var ok = document.getElementById("installOk"); if (ok) ok.style.display = "block";
+    if (installBtn){ installBtn.textContent = "✓ Added to your phone"; installBtn.disabled = true; installBtn.style.opacity = .7; }
+    var hint = document.getElementById("iosHint"); if (hint) hint.style.display = "none";
+  });
+
   if ("serviceWorker" in navigator){
     window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
   }
