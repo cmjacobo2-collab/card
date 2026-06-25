@@ -257,30 +257,44 @@
     window.addEventListener("load", function(){ navigator.serviceWorker.register("sw.js").catch(function(){}); });
   }
 
-  /* ----- Lead form -> Web3Forms ----- */
+  /* ----- Lead form -> FormSubmit (free: emails Connie + auto thank-you to contact) ----- */
+  var LEAD_EMAIL = "info@acrossthetable.biz";
+  var THANKYOU_MSG =
+    "Hi there,\n\n" +
+    "Thank you for sharing your info with me — it was great to connect!\n\n" +
+    "Here's my digital card so you always have my details handy:\n" +
+    "https://cmjacobo2-collab.github.io/card/\n\n" +
+    "Want to chat? You can grab a time with me here:\n" +
+    "https://calendly.com/acrossthetable-info\n\n" +
+    "Looking forward to staying in touch.\n\n" +
+    "Warmly,\n" +
+    "Connie Ramirez\n" +
+    "Across the Table\n" +
+    "info@acrossthetable.biz \u00b7 602-615-4166";
   function sendInfo(){
     var name = document.getElementById("f_name").value.trim();
     var email = document.getElementById("f_email").value.trim();
     var err = document.getElementById("formErr");
     if (document.getElementById("f_bot").value){ return; } /* honeypot */
     if (!name || !email){ err.textContent = "Please add your name and email."; err.style.display="block"; return; }
-    if (WEB3FORMS_KEY.indexOf("PASTE") === 0){ err.textContent = "Form key not set yet."; err.style.display="block"; return; }
     err.style.display="none";
-    fetch("https://api.web3forms.com/submit", {
+    fetch("https://formsubmit.co/ajax/" + LEAD_EMAIL, {
       method:"POST",
       headers:{"Content-Type":"application/json","Accept":"application/json"},
       body: JSON.stringify({
-        access_key: WEB3FORMS_KEY,
-        subject: "New contact from your card: " + name,
-        from_name: "Across the Table Card",
-        name: name, email: email,
+        name: name,
+        email: email,
         phone: document.getElementById("f_phone").value,
         company: document.getElementById("f_company").value,
-        message: document.getElementById("f_msg").value
+        message: document.getElementById("f_msg").value,
+        _subject: "New contact from your card: " + name,
+        _template: "table",
+        _autoresponse: THANKYOU_MSG,
+        _captcha: "false"
       })
     }).then(function(r){ return r.json(); })
       .then(function(d){
-        if (d && d.success){
+        if (d && (d.success === true || d.success === "true")){
           document.getElementById("formBox").style.display="none";
           document.getElementById("formDone").style.display="block";
         } else { err.textContent="Couldn't send just now. Please try again."; err.style.display="block"; }
